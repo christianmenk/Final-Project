@@ -1,0 +1,419 @@
+<!DOCTYPE HTML>
+<html>
+<!-- Christian Menk
+     Introduction to Programming
+     Final Project - Game v1.0  -->
+
+
+  <head>
+    <meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+    <meta name="author"             content="Christian W. Menk" />
+    <title>CRASH v1.0</title>
+    <script type="text/javascript" src="locations.js"></script>
+    <script type="text/javascript">
+    /*                            GLOBAL VARIABLES
+      currentLocation:    Keeps track of player's location.
+      score:              Keeps track of player's score.
+      randomSelect:       Used for determining a directional message.
+      locale array:       Stores all of the location objects in a global array.
+      items array:        Stores all of the item objects in a global array. 
+      inventory array:    Stores player's item pickups.   
+      DIRECTIONS:         Used in for the nav matrix. 
+      nav matrix:         Used for determining player's location.          */ 
+      
+      var currentLocation = 0;
+      var score = 5;
+      var randomSelect = 0;  
+      var locale = new Array();
+      var items = new Array();   
+      var inventory = new Array();
+      
+      var NORTH = 0;
+      var SOUTH = 1;
+      var EAST  = 2;
+      var WEST  = 3;
+      
+      var nav = [ // N   S   E   W
+             /*0*/ [ 1,  3,  4,  2],  
+             /*1*/ [ 5,  0, -1, -1],  
+             /*2*/ [-1, -1,  0, -1],  
+             /*3*/ [ 0,  7,  10, -1],  
+             /*4*/ [ 6, -1, -1,  0],  
+             /*5*/ [-1,  1, -1, -1],  
+             /*6*/ [-1,  4, -1, -1],  
+             /*7*/ [ 3,  8, -1,  9],  
+             /*8*/ [ 7, -1, -1, -1],  
+             /*9*/ [-1, -1,  7, -1],
+             /*10*/[-1, -1, -1,  3],
+             /*11*/[-1, -1, -1, -1],
+             ];  
+
+
+      //Init function uses onload to display the first location's description.
+      function init(){
+        initItems();
+        initLocs();
+        updateDisplay(locale[currentLocation].desc);
+      }
+                 
+      /*                            SCORE FUNCTIONS
+      checkScore: uses 'if' statements to determine if the player has visited a location,
+                  and adds score if they haven't.
+      showScore:  displays the score in the designated scoreBox after checkScore updates 
+                  the score.                                                             */ 
+      
+      function checkScore(){
+        if(locale[currentLocation].visited===false){
+          locale[currentLocation].visited=true;
+          score+=5;
+          showScore();
+        }
+      } 
+      
+      function showScore(){
+        var targetScoreBox = document.getElementById("scoreBox");
+        targetScoreBox.value = score;
+      } 
+      /*                         END OF SCORE FUNCTIONS                                  */          
+      
+      /*                       COMMAND BOX INPUT FUNCTION
+      This function takes the user's input in the commandBox and determines what to do 
+      with it. I am expecting to add more to this function as the semester progresses, 
+      hence why it gets its own block comment.                                           */
+      
+      function btnGo_click(){
+       var commandBoxInput = document.getElementById("commandBox");
+       var userInput = commandBoxInput.value;
+       userInput = userInput.toUpperCase();
+       switch(userInput){   
+          case 'N':
+            btnNorth_click();
+            break;
+          case 'S':
+            btnSouth_click();
+            break;
+          case 'E':
+            btnEast_click();
+            break;
+          case 'W':
+            btnWest_click();
+            break;
+          case 'HELP':
+            updateDisplay("Available commands:\nn,s,e,w\nhelp\ntake\ninventory");
+            break;
+          case 'TAKE':
+            takeItem();
+            break;
+          case 'INVENTORY':
+            updateDisplay("Inventory:\n"+inventory);
+            break;
+          default:
+            updateDisplay("That is not a valid command. Type \"help\" for a list of commands.");
+        }
+      }
+      
+      /*                                   ITEM AND INVENTORY FUNCTION
+         Function takeItem() executes when the user writes 'take' as a command, and based off of the room,
+         an item will be put in the inventory array or if there is no item in the location, or if it was 
+         taken, a message will alert the player.                                                                                     */
+      
+      function takeItem(){
+        if(locale[currentLocation].item===true && items[currentLocation].isTaken===false){
+          inventory.push(items[currentLocation].name);
+          updateDisplay("You pick up the " + items[currentLocation].name + ".");
+          show_image("map.jpg", 350,350, "Map");  
+          items[currentLocation].isTaken = true;
+        } else {
+            updateDisplay("There is nothing here to take!");
+          }  
+      }
+     
+      /*                        LOCATION/DIRECTION DETERMINATION FUNCTIONS
+        outputLocDesc:       This function outputs the final description of a location using the dirDesc
+                             parameter, the "items" array, and the "locale" array.
+        directionMessage:    This function determines what direction the player moved based off of
+                             variables created to determine it. It then randomly selects one of 
+                             three descriptions and sends it to be combined with the location's
+                             description.                                                        */
+
+      function outputLocDesc(dirDesc){
+        var finalDesc = "";
+        if(locale[currentLocation].item===true && items[currentLocation].isTaken===false){
+          finalDesc = dirDesc + locale[currentLocation].desc + items[currentLocation].desc;
+        } else {
+            finalDesc = dirDesc + locale[currentLocation].desc;
+          }
+          updateDisplay(finalDesc);
+      }    
+      
+      
+      function directionMessage(dirNum){
+        var dirDesc = "";
+        // This switch structure determines which direction the player is moving and sends a description of it to be combined with the location's description.
+        // North=1  South=2  East=3  West=4
+        switch(dirNum){
+          case 0:
+            randomNumber();
+            if(randomSelect===1)
+              dirDesc = "You move North into a ";
+            if(randomSelect===2)
+              dirDesc = "You head North towards a ";
+            if(randomSelect===3)
+              dirDesc = "You go North and find yourself in a ";
+           break;
+          case 1:
+            randomNumber();
+            if(randomSelect===1)
+              dirDesc = "You move South into a ";
+            if(randomSelect===2)
+              dirDesc = "You head South towards a ";
+            if(randomSelect===3)
+              dirDesc = "You go South and find yourself in a ";
+           break;
+          case 2:
+            randomNumber();
+            if(randomSelect===1)
+              dirDesc = "You move East into a ";
+            if(randomSelect===2)
+              dirDesc = "You head East towards a ";
+            if(randomSelect===3)
+              dirDesc = "You go East and find yourself in a ";
+           break;
+          case 3:
+            randomNumber();
+            if(randomSelect===1)
+              dirDesc = "You move West into a ";
+            if(randomSelect===2)
+              dirDesc = "You head West towards a ";
+            if(randomSelect===3)
+              dirDesc = "You go West and find yourself in a ";
+           break;
+        }
+       outputLocDesc(dirDesc);
+      }
+       
+      /*                           UTILITY FUNCTIONS                                  
+        buttonToggler:   disables/enables buttons that are valid for use based off of 
+                         the player's location.
+        disableBtnNorth:  each of the disable functions check the players location and 
+        disableBtnSouth   disables the button based off of it
+        disableBtnEast
+        disableBtnWest
+        
+        errorMessage:  if the player attempts to go somewhere that they cannot, 
+                       errorMessage displays the direction they are attempting to
+                       move in and that they cannot go that way.
+        updateDisplay: updates the textarea with any messages sent to it from other
+                       functions.
+        randomNumber:  chooses a random number between 1-3 to choose a random 
+                       description of the players shift in direction.        
+        show_image:    uses parameters to determine source, size, and an alternate 
+                       message of an image that will be shown when called(used for map).
+        enterKey:      allows the user to press enter to submit command text.
+        unlockRoom:    Used for the puzzle element of the game, checks to see if items
+                       were collected to allow/deny access to the end room.
+                                                                                        */
+       
+
+      function buttonToggler(){
+        disableBtnNorth();
+        disableBtnSouth();
+        disableBtnEast();
+        disableBtnWest();
+      }
+      
+      function disableBtnNorth(){
+        if (currentLocation===2 || currentLocation===5 || currentLocation===6 || currentLocation===9 || currentLocation===10 || currentLocation===11){
+          document.getElementById("btnNorth").disabled= true;
+        } else {
+            document.getElementById("btnNorth").disabled= false;
+          }
+      }
+      
+      function disableBtnSouth(){
+        if (currentLocation===2 || currentLocation===4 || currentLocation===8 || currentLocation===9 || currentLocation===10 || currentLocation===11){
+          document.getElementById("btnSouth").disabled= true;
+        } else {
+            document.getElementById("btnSouth").disabled= false;
+          }
+      }
+      
+      function disableBtnEast(){
+        if (currentLocation===1 || currentLocation===4 || currentLocation===5 || currentLocation===6 || currentLocation===7 || currentLocation===8 || currentLocation===10 || currentLocation===11){
+          document.getElementById("btnEast").disabled= true;
+        } else {
+            document.getElementById("btnEast").disabled= false;
+          }
+      }
+      
+      function disableBtnWest(){
+        if (currentLocation===1 || currentLocation===2 || currentLocation===3 || currentLocation===5 || currentLocation===6 || currentLocation===8 || currentLocation===9 || currentLocation===11){
+          document.getElementById("btnWest").disabled= true;
+        } else {
+            document.getElementById("btnWest").disabled= false;
+          }
+      } 
+   
+      function errorMessage(dirNum){
+        switch(dirNum){
+          case 0:
+            updateDisplay("You cannot go North.");
+            break;
+          case 1:
+            updateDisplay("You cannot go South.");
+            break;
+          case 2:
+            updateDisplay("You cannot go East.");
+            break;
+          case 3:
+            updateDisplay("You cannot go West.");
+            break;
+        }
+      }
+      
+      function updateDisplay(msg){
+        var targetTextArea = document.getElementById("taMain");
+        targetTextArea.value = msg + "\n\n" + targetTextArea.value;
+      }
+            
+      function randomNumber(){
+        randomSelect = Math.floor((Math.random() * 3) + 1);
+      } 
+
+      function show_image(src, width, height, alt) {
+          if(items[9].isTaken === false && currentLocation===9){
+            var img = document.createElement("img");
+            img.src = src;
+            img.width = width;
+            img.height = height;
+            img.alt = alt;
+            document.body.appendChild(img);
+          }  
+      }
+      
+      function enterKey(e){
+        if(e.which === 13){
+          btnGo_click();
+        }
+      }
+      
+      function unlockRoom(){
+        switch(currentLocation){
+          case 10:
+            if(items[1].isTaken === true && items[6].isTaken === true && items[7].isTaken === true){
+              currentLocation = 11;
+              updateDisplay(locale[11].desc);
+              buttonToggler();
+          } else {
+              updateDisplay("You need to collect more items to make a raft!");
+            }
+            break;
+        }
+      }
+      /*                           END OF UTILITY FUNCTIONS                           */  
+      
+     /*                            NAVIGATION FUNCTIONS
+         Function nextLocation uses the nav matrix to determine the player's next location
+         and then calls all of the functions needed to update score, buttons, etc. The button
+         click function call nextLocation with their corresponding parameter.            */
+      
+    function nextLocation(dir){
+      var newLocation = nav[currentLocation][dir];
+      if(newLocation >= 0){
+        currentLocation = newLocation;
+        directionMessage(dir);  
+        buttonToggler();
+        checkScore();  
+        unlockRoom();
+      } else {
+          errorMessage(dir);
+        }
+    }
+          
+    function btnNorth_click(){         
+      nextLocation(NORTH);
+    }    
+      
+    function btnSouth_click(){
+      nextLocation(SOUTH);
+    }
+
+    function btnEast_click(){
+      nextLocation(EAST);
+    }
+
+    function btnWest_click(){
+      nextLocation(WEST);
+    }
+         
+    </script>
+  </head>
+  <body onload="init();" style="background-color:#800000;text-align:center;">
+    
+    <!--Game title-->
+    <span style="text-align:center;color:orange;font-size:50px;font-family:impact;font-style:italic;">CRASH v1.0</span>
+  
+    <br>
+    
+    <!--Box that will display the score. Value starts at 5 because the start room is considered a room.-->  
+    <span style="color:white;">Score:</span>
+    <input type="text"
+           id = "scoreBox"
+           name="scoreBox"
+           value="5"
+           size="2"
+           maxlength="5" 
+           readonly />
+    <br>
+    
+    <!--Main textarea that will display all results of the player's actions.-->
+    <textarea rows="15" cols="35" id="taMain" readonly></textarea>     
+    
+    <br> 
+    
+    <!--Command box and Go button -->
+    <input type="text"
+           id = "commandBox"
+           name = "commandBox"
+           placeholder = "Enter your command here"
+           onkeypress= "enterKey(event)" />
+           
+    <input type="button"
+           id = "btnGo"
+           value="Go"
+           onclick="btnGo_click();" />       
+   
+    <br>
+        
+    <!--All four directional buttons that the player uses for movement-->      
+    <input type="button"
+           id = "btnNorth"
+           value="North"
+           onclick="btnNorth_click();" />
+          
+    <br>    
+    
+     <input type="button"
+           id = "btnWest"
+           value="West"
+           onclick="btnWest_click();" />   
+                
+    <input type="button"
+           id = "btnEast"
+           value="East"
+           onclick="btnEast_click();" />              
+          
+    <br>               
+                      
+     <input type="button"
+           id = "btnSouth"
+           value="South"
+           onclick="btnSouth_click();" />       
+               
+    <br><br>
+    <a href="mailto:christian.menk1@marist.edu?Subject=I'm%20bad%20at%20videogames,%20help%20me!" style="color:orange;">Stuck? Email me for a walkthrough!</a>
+   
+    <br>
+    
+  </body>
+</html>
